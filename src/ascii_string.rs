@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut, Add, Index, IndexMut};
 use std::iter::FromIterator;
 
 use ascii::Ascii;
-use ascii_str::{AsciiStr,AsAsciiStr,AsAsciiStrError};
+use ascii_str::{AsciiStr,AsAsciiStrError};
 
 /// A growable string stored as an ASCII encoded buffer.
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -136,8 +136,8 @@ impl AsciiString {
     /// # use ascii::{AsciiString, AsAsciiStr};
     /// use std::str::FromStr;
     /// let mut s = AsciiString::from_str("foo").unwrap();
-    /// s.push_str("bar".as_ascii_str().unwrap());
-    /// assert_eq!(s, "foobar".as_ascii_str().unwrap());
+    /// s.push_str(AsciiStr::from_ascii("bar").unwrap());
+    /// assert_eq!(s, AsciiStr::from_ascii("foobar").unwrap());
     /// ```
     #[inline]
     pub fn push_str(&mut self, string: &AsciiStr) {
@@ -449,7 +449,7 @@ impl FromStr for AsciiString {
     type Err = AsAsciiStrError;
 
     fn from_str(s: &str) -> Result<AsciiString, AsAsciiStrError> {
-        s.as_ascii_str().map(AsciiStr::to_ascii_string)
+        AsciiStr::from_ascii(s).map(AsciiStr::to_ascii_string)
     }
 }
 

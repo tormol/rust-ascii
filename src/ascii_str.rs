@@ -1,5 +1,6 @@
 use std::{fmt, mem};
 use std::ops::{Index, IndexMut, Range, RangeTo, RangeFrom, RangeFull};
+use std::borrow::{Borrow, BorrowMut};
 use std::error::Error;
 use std::ascii::AsciiExt;
 
@@ -76,10 +77,9 @@ impl AsciiStr {
     /// assert_eq!(foo.unwrap().as_str(), "foo");
     /// assert_eq!(err.unwrap_err().valid_up_to(), 0);
     /// ```
-    pub fn from_ascii<B: ?Sized>(bytes: &B) -> Result<&AsciiStr, AsAsciiStrError>
-        where B: AsRef<[u8]>
-    {
-        bytes.as_ref().as_ascii_str()
+    pub fn from_ascii<'a, S: 'a+?Sized+AsAsciiStr, T: ?Sized+Borrow<S>>(s: &'a T)
+    -> Result<&'a AsciiStr, AsAsciiStrError> {
+        s.borrow().as_ascii_str()
     }
 
     /// Converts anything that can be represented as a byte slice to an `AsciiStr` without checking for non-ASCII characters..
@@ -90,10 +90,38 @@ impl AsciiStr {
     /// let foo = unsafe{ AsciiStr::from_ascii_unchecked("foo") };
     /// assert_eq!(foo.as_str(), "foo");
     /// ```
-    pub unsafe fn from_ascii_unchecked<B: ?Sized>(bytes: &B) -> &AsciiStr
-        where B: AsRef<[u8]>
-    {
-        bytes.as_ref().as_ascii_str_unchecked()
+    pub unsafe fn from_ascii_unchecked<'a, S:'a+?Sized+AsAsciiStr, T:?Sized+Borrow<S>>
+    (s: &'a T) -> &'a AsciiStr {
+        s.borrow().as_ascii_str_unchecked()
+    }
+
+
+    /// Converts anything that can represent a byte slice into an `AsciiStr`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ascii::AsciiStr;
+    /// let foo = AsciiStr::from_mut_ascii("foo");
+    /// let err = AsciiStr::from_mut_ascii("Ŋ");
+    /// assert_eq!(foo.unwrap().as_str(), "foo");
+    /// assert_eq!(err, Err());
+    /// ```
+    pub fn from_mut_ascii<'a, S: 'a+?Sized+AsMutAsciiStr, T: ?Sized+BorrowMut<S>>
+    (s: &'a mut T) -> Result<&'a mut AsciiStr, AsAsciiStrError> {
+        s.borrow_mut().as_mut_ascii_str()
+    }
+
+    /// Converts anything that can represent a byte slice into an `AsciiStr` without validation.
+    ///
+    /// # Examples
+    /// ```
+    /// # use ascii::AsciiStr;
+    /// let foo = unsafe{ AsciiStr::from_mut_ascii_unchecked("foo".to_string()) };
+    /// assert_eq!(foo.as_str(), "foo");
+    /// ```
+    pub unsafe fn from_mut_ascii_unchecked<'a, S:'a+?Sized+AsMutAsciiStr, T:?Sized+BorrowMut<S>>
+    (s: &'a mut T) -> &'a mut AsciiStr {
+        s.borrow_mut().as_mut_ascii_str_unchecked()
     }
 
     /// Returns the number of characters / bytes in this ASCII sequence.

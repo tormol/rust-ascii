@@ -5,7 +5,7 @@ use ascii::{Ascii, AsciiStr, AsciiString, AsAsciiStr, IntoAsciiString};
 #[test]
 fn ascii_vec() {
     let test = b"( ;";
-    let a = AsciiStr::from_ascii(test).unwrap();
+    let a = AsciiStr::from_ascii(test).unwrap();// would requie ..scii::<[u8],[u8]>(...
     assert_eq!(test.as_ascii_str(), Ok(a));
     assert_eq!("( ;".as_ascii_str(), Ok(a));
     let v = test.to_vec();
