@@ -324,25 +324,84 @@ impl AsciiExt for AsciiStr {
 /// Error that is returned when a sequence of `u8` are not all ASCII.
 ///
 /// Is used by `As[Mut]AsciiStr` and the `from_ascii` method on `AsciiStr` and `AsciiString`.
-#[derive(Clone,Copy, PartialEq,Eq, Debug)]
-pub struct AsAsciiStrError (usize);
+#[derive(Clone,Copy)]
+pub struct AsAsciiStrError {
+    index: usize,
+    /// If less than 128, it was a byte >= 128 and not from a str
+    not_ascii: char,
+}
+
+fn first_utf8_byte(not_ascii: char) -> u8 {
+    // Not the prettiest solution, but works on Rust 1.9 and no_std.
+    // Moved out of .byte() to be testable.
+    let len = not_ascii.len_utf8();
+    let encoded_bits = not_ascii as u32 >> (len-1)*6;
+    let len_encoded = (0xff_00 >> len) as u8;
+    len_encoded | encoded_bits as u8
+}
+
 impl AsAsciiStrError {
     /// Returns the index of the first non-ASCII byte.
     ///
     /// It is the maximum index such that `from_ascii(input[..index])` would return `Ok(_)`.
     pub fn valid_up_to(self) -> usize {
-        self.0
+        self.index
+    }
+
+    /// If it was a `str` that was being converted, the first byte in the utf8 encoding is returned.
+    pub fn byte(self) -> u8 {
+        if self.not_ascii < 128 as char {
+            self.not_ascii as u8 + 128
+        } else {
+            first_utf8_byte(self.not_ascii)
+        }
+    }
+
+    /// Get the character that caused the conversion from a `str` to fail.
+    ///
+    /// Returns `None` if the error was caused by a byte in a `[u8]`
+    pub fn char(self) -> Option<char> {
+        match self.not_ascii as u32 {
+            0...127 => None, // byte in a [u8]
+               _    => Some(self.not_ascii),
+        }
+    }
+}
+
+/// Compares index and `.byte()`s
+impl PartialEq for AsAsciiStrError {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.index == rhs.index  &&  self.byte() == rhs.byte()
+    }
+}
+
+impl fmt::Debug for AsAsciiStrError {
+    fn fmt(&self,  fmtr: &mut fmt::Formatter) -> fmt::Result {
+        if (self.not_ascii as u32) < 128 {
+            write!(fmtr, "b'\\x{:x}' at index {}", self.not_ascii as u8 + 128, self.index)
+        } else {
+            write!(fmtr, "'{}' at index {}", self.not_ascii, self.index)
+        }
     }
 }
 impl fmt::Display for AsAsciiStrError {
     fn fmt(&self,  fmtr: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmtr, "the byte at index {} is not ASCII", self.0)
+        if (self.not_ascii as u32) < 128 {
+            write!(fmtr, "the byte \\x{:x} at index {} is not ASCII", self.not_ascii as u8 + 128, self.index)
+        } else {
+            write!(fmtr, "the character {} at index {} is not ASCII", self.not_ascii, self.index)
+        }
     }
 }
 impl Error for AsAsciiStrError {
     /// Returns "one or more bytes are not ASCII"
+    /// or "one or more characters are not ASCII"
     fn description(&self) -> &'static str {
-        "one or more bytes are not ASCII"
+        if (self.not_ascii as u32) < 128 {
+            "one or more bytes are not ASCII"
+        } else {
+            "one or more characters are not ASCII"
+        }
     }
 }
 
@@ -383,8 +442,11 @@ impl AsMutAsciiStr for AsciiStr {
 
 impl AsAsciiStr for [u8] {
     fn as_ascii_str(&self) -> Result<&AsciiStr,AsAsciiStrError> {
-        match self.iter().position(|&b| b > 127 ) {
-            Some(index) => Err(AsAsciiStrError(index)),
+        match self.iter().enumerate().find(|&(_,b)| *b > 127 ) {
+            Some((index, &byte)) => Err(AsAsciiStrError{
+                                            index: index,
+                                            not_ascii: (byte - 128) as char,
+                                        }),
             None => unsafe{ Ok(self.as_ascii_str_unchecked()) },
         }
     }
@@ -394,8 +456,11 @@ impl AsAsciiStr for [u8] {
 }
 impl AsMutAsciiStr for [u8] {
     fn as_mut_ascii_str(&mut self) -> Result<&mut AsciiStr,AsAsciiStrError> {
-        match self.iter().position(|&b| b > 127 ) {
-            Some(index) => Err(AsAsciiStrError(index)),
+        match self.iter().enumerate().find(|&(_,b)| *b > 127 ) {
+            Some((index, &byte)) => Err(AsAsciiStrError{
+                                            index: index,
+                                            not_ascii: (byte - 128) as char,
+                                        }),
             None => unsafe{ Ok(self.as_mut_ascii_str_unchecked()) },
         }
     }
@@ -406,7 +471,13 @@ impl AsMutAsciiStr for [u8] {
 
 impl AsAsciiStr for str {
     fn as_ascii_str(&self) -> Result<&AsciiStr,AsAsciiStrError> {
-        self.as_bytes().as_ascii_str()
+        match self.bytes().position(|b| b > 127 ) {
+            Some(index) => Err(AsAsciiStrError{
+                                   index: index,
+                                   not_ascii: self[index..].chars().next().unwrap(),
+                               }),
+            None => unsafe{ Ok(self.as_ascii_str_unchecked()) },
+        }
     }
     unsafe fn as_ascii_str_unchecked(&self) -> &AsciiStr {
         self.as_bytes().as_ascii_str_unchecked()
@@ -415,7 +486,10 @@ impl AsAsciiStr for str {
 impl AsMutAsciiStr for str {
     fn as_mut_ascii_str(&mut self) -> Result<&mut AsciiStr,AsAsciiStrError> {
         match self.bytes().position(|b| b > 127 ) {
-            Some(index) => Err(AsAsciiStrError(index)),
+            Some(index) => Err(AsAsciiStrError{
+                                   index: index,
+                                   not_ascii: self[index..].chars().next().unwrap(),
+                               }),
             None => unsafe{ Ok(self.as_mut_ascii_str_unchecked()) },
         }
     }
@@ -444,19 +518,32 @@ mod tests {
 
     #[test]
     fn as_ascii_str() {
-        macro_rules! err {{$i:expr} => {Err(AsAsciiStrError($i))}}
+        /// AsAsciiStrError doesn't compare not_ascii, but .byte()
+        macro_rules! tuplify{ {$result:expr} => {
+            $result.map_err(|aase| (aase.index, aase.not_ascii) )
+        }}
         let mut s: String = "abčd".to_string();
         let mut b: Vec<u8> = s.clone().into();
-        assert_eq!(s.as_str().as_ascii_str(), err!(2));
-        assert_eq!(s.as_mut_str().as_mut_ascii_str(), err!(2));
-        assert_eq!(b.as_slice().as_ascii_str(), err!(2));
-        assert_eq!(b.as_mut_slice().as_mut_ascii_str(), err!(2));
+        assert_eq!(tuplify!(s.as_str().as_ascii_str()), Err((2, 'č')));
+        assert_eq!(tuplify!(s.as_mut_str().as_mut_ascii_str()), Err((2, 'č')));
+        let c = (b[2]-128) as char;
+        assert_eq!(tuplify!(b.as_slice().as_ascii_str()), Err((2, c)));
+        assert_eq!(tuplify!(b.as_mut_slice().as_mut_ascii_str()), Err((2, c)));
+
         let mut a = [Ascii::a, Ascii::b];
         assert_eq!((&s[..2]).as_ascii_str(), Ok((&a[..]).into()));
         assert_eq!((&b[..2]).as_ascii_str(), Ok((&a[..]).into()));
         let a = Ok((&mut a[..]).into());
         assert_eq!((&mut s[..2]).as_mut_ascii_str(), a);
         assert_eq!((&mut b[..2]).as_mut_ascii_str(), a);
+    }
+
+    #[test]
+    fn first_utf8_byte() {
+        let s = "¡߹ऄ￮𐄂𠂤";
+        for (i,c) in s.char_indices() {
+            assert_eq!(super::first_utf8_byte(c), s.as_bytes()[i]);
+        }
     }
 
     #[test]
