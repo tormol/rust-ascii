@@ -10,7 +10,7 @@ dependencies section in `Cargo.toml`:
 
 ```toml
 [dependencies]
-ascii = "1.1"
+ascii = "1.2"
 ```
 
 ## Using ascii without libstd
@@ -30,7 +30,7 @@ just add the following dependency declaration in `Cargo.toml`:
 
 ```toml
 [dependencies]
-ascii = { version = "1.1", default-features = false, features = ["alloc"] }
+ascii = { version = "1.2", default-features = false, features = ["alloc"] }
 ```
 
 ## Minimum supported Rust version
