@@ -20,3 +20,6 @@ alloc = []
 [[test]]
 name = "tests"
 path = "tests.rs"
+
+[badges]
+maintenance = {status = "passively-maintained"}
