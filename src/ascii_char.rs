@@ -326,38 +326,18 @@ impl AsciiChar {
     ///
     /// This function will panic if passed a non-ASCII character.
     ///
-    /// The panic message might not be the most descriptive due to the
-    /// current limitations of `const fn`.
+    /// The panic message might not be the most descriptive due to
+    /// current limitations of what is available in `const fn`.
+    #[inline]
     #[must_use]
+    #[track_caller]
     pub const fn new(ch: char) -> AsciiChar {
-        // It's restricted to this function, and without it
-        // we'd need to specify `AsciiChar::` or `Self::` 128 times.
-        #[allow(clippy::enum_glob_use)]
-        use AsciiChar::*;
-
-        #[rustfmt::skip]
-        const ALL: [AsciiChar; 128] = [
-            Null, SOH, SOX, ETX, EOT, ENQ, ACK, Bell,
-            BackSpace, Tab, LineFeed, VT, FF, CarriageReturn, SI, SO,
-            DLE, DC1, DC2, DC3, DC4, NAK, SYN, ETB,
-            CAN, EM, SUB, ESC, FS, GS, RS, US,
-            Space, Exclamation, Quotation, Hash, Dollar, Percent, Ampersand, Apostrophe,
-            ParenOpen, ParenClose, Asterisk, Plus, Comma, Minus, Dot, Slash,
-            _0, _1, _2, _3, _4, _5, _6, _7,
-            _8, _9, Colon, Semicolon, LessThan, Equal, GreaterThan, Question,
-            At, A, B, C, D, E, F, G,
-            H, I, J, K, L, M, N, O,
-            P, Q, R, S, T, U, V, W,
-            X, Y, Z, BracketOpen, BackSlash, BracketClose, Caret, UnderScore,
-            Grave, a, b, c, d, e, f, g,
-            h, i, j, k, l, m, n, o,
-            p, q, r, s, t, u, v, w,
-            x, y, z, CurlyBraceOpen, VerticalBar, CurlyBraceClose, Tilde, DEL,
-		];
-
-        // We want to slice here and detect `const_err` from rustc if the slice is invalid
-        #[allow(clippy::indexing_slicing)]
-        ALL[ch as usize]
+        unsafe {
+            match ch as u32 {
+                0..=127 => mem::transmute(ch as u8),
+                _ => panic!("not an ASCII character"),
+            }
+        }
     }
 
     /// Create an `AsciiChar` from a `char`, in a `const fn` way.
