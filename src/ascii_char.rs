@@ -439,11 +439,11 @@ impl AsciiChar {
     ///
     /// Radixes greater than 36 are not supported and will result in a panic.
     #[must_use]
-    pub fn is_digit(self, radix: u32) -> bool {
+    pub const fn is_digit(self, radix: u32) -> bool {
         match (self as u8, radix) {
-            (b'0'..=b'9', 0..=36) => u32::from(self as u8 - b'0') < radix,
-            (b'a'..=b'z', 11..=36) => u32::from(self as u8 - b'a') < radix - 10,
-            (b'A'..=b'Z', 11..=36) => u32::from(self as u8 - b'A') < radix - 10,
+            (b'0'..=b'9', 0..=36) => (self as u32 - '0' as u32) < radix,
+            (b'a'..=b'z', 11..=36) => (self as u32 - 'a' as u32) < radix - 10,
+            (b'A'..=b'Z', 11..=36) => (self as u32 - 'A' as u32) < radix - 10,
             (_, 0..=36) => false,
             (_, _) => panic!("radixes greater than 36 are not supported"),
         }
