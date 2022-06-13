@@ -15,9 +15,7 @@ pub enum AsciiChar {
     SOH = 1,
     #[allow(clippy::doc_markdown)]
     /// [Start of TeXt](http://en.wikipedia.org/wiki/Start_of_Text)
-    #[doc(hidden)]
-    #[deprecated(since="1.2.0", note="Replaced with AsciiChar::STX which is the correct name for this variant.")]
-    SOX = 2,
+    STX = 2,
     /// [End of TeXt](http://en.wikipedia.org/wiki/End-of-Text_character)
     ETX = 3,
     /// [End Of Transmission](http://en.wikipedia.org/wiki/End-of-Transmission_character)
@@ -281,12 +279,11 @@ pub enum AsciiChar {
 }
 
 impl AsciiChar {
+    #[allow(clippy::doc_markdown)]
     /// [Start of TeXt](http://en.wikipedia.org/wiki/Start_of_Text)
-    ///
-    /// (It's an associated constant instead of a variant because
-    ///  the variant for it has an incorrect name.)
-    #[allow(deprecated, clippy::doc_markdown)]
-    pub const STX: AsciiChar = AsciiChar::SOX;
+    #[doc(hidden)]
+    #[deprecated(since="1.2.0", note="Correct name is STX, Use AsciiChar::STX instead.")]
+    pub const SOX: AsciiChar = AsciiChar::STX;
 
     /// Constructs an ASCII character from a `u8`, `char` or other character type.
     ///
@@ -347,7 +344,7 @@ impl AsciiChar {
 
         #[rustfmt::skip]
         const ALL: [AsciiChar; 128] = [
-            Null, SOH, AsciiChar::STX, ETX, EOT, ENQ, ACK, Bell,
+            Null, SOH, STX, ETX, EOT, ENQ, ACK, Bell,
             BackSpace, Tab, LineFeed, VT, FF, CarriageReturn, SI, SO,
             DLE, DC1, DC2, DC3, DC4, NAK, SYN, ETB,
             CAN, EM, SUB, ESC, FS, GS, RS, US,

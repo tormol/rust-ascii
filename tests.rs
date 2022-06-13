@@ -31,7 +31,7 @@ fn to_ascii() {
 fn deprecated_variant() {
     #![allow(deprecated)]
     use AsciiChar::*;
-    assert_eq!(AsciiChar::STX, SOX);
+    assert_eq!(AsciiChar::SOX, STX);
 }
 
 #[test]
