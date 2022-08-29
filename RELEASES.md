@@ -1,5 +1,9 @@
 Version 1.2.0 (unreleased)
 ==========================
+* Add `AsciiStr::new()`, `AsciiStr::from_ascii_bytes()`, `AsciiStr::from_ascii_str()` and `AsciiChar::try_new()`.
+* Make `AsciiStr::as_str()`, `AsciiStr::as_bytes()` and `AsciiStr::trim*()` methods `const fn`.
+* Make `AsciiChar::from_ascii_unchecked()` and `AsciiChar::as_printable_char()` `const fn`.
+* Require Rust 1.56.1.
 
 Version 1.1.0 (2022-09-18)
 ==========================
