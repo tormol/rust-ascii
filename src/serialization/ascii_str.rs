@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

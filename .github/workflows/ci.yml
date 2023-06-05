@@ -22,6 +22,8 @@ jobs:
       - run: cargo test --verbose --all-features
       - run: cargo test --verbose --no-default-features --features alloc
       - run: cargo test --verbose --no-default-features
+      - run: cargo test --verbose --no-default-features --features serde,alloc
+      - run: cargo test --verbose --no-default-features --features serde
 
   clippy:
     name: Lint with Clippy

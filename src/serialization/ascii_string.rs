@@ -1,4 +1,6 @@
-use std::fmt;
+use core::fmt;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
